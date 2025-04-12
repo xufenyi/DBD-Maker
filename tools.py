@@ -41,6 +41,14 @@ def read_dbd(filepath: str) -> dict:
     return result
 
 
+def str_is_float(s: str) -> bool:
+    try:
+        _ = float(s)
+        return True
+    except ValueError:
+        return False
+
+
 def is_valid_csv_line(line: str) -> bool:
     """
     检查一行数据是否有效。
@@ -50,7 +58,7 @@ def is_valid_csv_line(line: str) -> bool:
     if len(parts) != 3:
         return False
     x, y, action = parts
-    return x.strip().isdigit() and y.strip().isdigit() and action.strip() in ('mark', 'jump')
+    return str_is_float(x.strip()) and str_is_float(y.strip()) and action.strip() in ('mark', 'jump')
 
 
 def read_csv(filepath: str) -> list:

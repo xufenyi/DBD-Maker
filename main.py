@@ -6,7 +6,7 @@ from PySide2.QtGui import QFont, QIntValidator, QRegExpValidator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.patches as patches
-from read_dbd import read_dbd
+from tools import *
 
 
 def mm2inch(value, round_count=3):
@@ -104,24 +104,28 @@ class MainWindow(QMainWindow):
         self.action_new = QAction('新建', self)
         self.action_open = QAction('打开', self)
         self.action_save = QAction('保存', self)
-        self.action_import = QAction('从csv文件导入', self)
+        self.action_csv_example = QAction('创建示例csv文件', self)
+        self.action_import = QAction('从csv文件导入坐标序列', self)
         self.action_exit = QAction('关闭', self)
 
         self.action_new.setShortcut('Ctrl+N')
         self.action_open.setShortcut('Ctrl+O')
         self.action_save.setShortcut('Ctrl+S')
-        self.action_import.setShortcut('Ctrl+I')
         self.action_exit.setShortcut('Ctrl+Q')
 
         self.menu_file.addAction(self.action_new)
         self.menu_file.addAction(self.action_open)
         self.menu_file.addAction(self.action_save)
+        self.menu_file.addSeparator()
+        self.menu_file.addAction(self.action_csv_example)
         self.menu_file.addAction(self.action_import)
+        self.menu_file.addSeparator()
         self.menu_file.addAction(self.action_exit)
 
         self.action_new.triggered.connect(self.action_new_slot)
         self.action_open.triggered.connect(self.action_open_slot)
         self.action_save.triggered.connect(self.action_save_slot)
+        self.action_csv_example.triggered.connect(self.action_csv_example_slot)
         self.action_import.triggered.connect(self.action_import_slot)
         self.action_exit.triggered.connect(self.close)
 
@@ -153,6 +157,7 @@ class MainWindow(QMainWindow):
         vbox0.addLayout(self.grid0)
         self.grid0.addWidget(QLabel('文件名'), 0, 0)
         self.line_file = QLineEdit()
+        self.line_file.textChanged.connect(self.line_file_changed)
         self.grid0.addWidget(self.line_file, 0, 1)
         self.grid0.addWidget(QLabel('.dbd'), 0, 2)
 
@@ -266,6 +271,9 @@ class MainWindow(QMainWindow):
     def set_title(self, filename='Untitled.dbd'):
         self.setWindowTitle(f'{filename} - DBD Maker')
 
+    def line_file_changed(self):
+        self.set_title(self.line_file.text())
+
     def set_values(self, file='Untitled', unit='mm',
         laserOnDelay='15', laserOffDelay='190', jumpSpeed='7379.995', markSpeed='500.000',
         jumpDelay='500', markDelay='500', stepPeriod='100'
@@ -303,7 +311,6 @@ class MainWindow(QMainWindow):
                 jumpDelay=result['JumpDelay'], markDelay=result['MarkDelay'],
                 stepPeriod=result['StepPeriod']
             )
-            self.set_title(result['File'])
         except KeyError:
             QMessageBox.critical(self, '错误', '文件信息缺失或有误。')
             self.set_values()
@@ -313,6 +320,9 @@ class MainWindow(QMainWindow):
         except KeyError:
             movements = []
 
+        self.set_movements(movements)
+
+    def set_movements(self, movements: list):
         self.table.setRowCount(0)
         for movement in movements:
             self.table_add_line(
@@ -350,8 +360,20 @@ class MainWindow(QMainWindow):
                 f.write(f'{action}_abs {x} {y}\n')
             f.write(f'End_List\n')
 
+    def action_csv_example_slot(self):
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, '保存文件', '坐标序列.csv', 'CSV 文件 (*.csv)'
+        )
+        if filepath:
+            write_csv_example(filepath)
+
     def action_import_slot(self):
-        print("从csv文件导入")
+        filepath, _ = QFileDialog.getOpenFileName(
+            self, '打开文件', '', 'CSV 文件 (*.csv)'
+        )
+        if not filepath:
+            return
+        self.set_movements(read_csv(filepath))
 
     def action_about_slot(self):
         QMessageBox.about(

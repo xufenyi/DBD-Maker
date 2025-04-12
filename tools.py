@@ -64,7 +64,6 @@ def read_csv(filepath: str) -> list:
             if is_valid_csv_line(line):
                 x, y, action = line.strip().split(',')
                 lines.append((x.strip(), y.strip(), action.strip()))
-    print(lines)
     return lines
 
 
